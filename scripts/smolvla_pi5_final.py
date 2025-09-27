@@ -22,47 +22,43 @@ def can_display():
     return 'DISPLAY' in os.environ
 
 def fix_normalization_stats(policy):
-    """Fix all normalization buffers comprehensively"""
+    """Fix all normalization buffers comprehensively - force fix all buffers"""
     print("🔧 Fixing normalization stats...")
 
     fixed_count = 0
 
-    # Fix all normalize_inputs buffers
+    # Fix all normalize_inputs buffers (force fix, don't check if infinite)
     if hasattr(policy, 'normalize_inputs'):
         for attr_name in dir(policy.normalize_inputs):
             if attr_name.startswith('buffer_'):
                 buffer = getattr(policy.normalize_inputs, attr_name)
                 if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
-                    # Check if infinite
-                    if torch.isinf(buffer.mean).any() or torch.isinf(buffer.std).any():
-                        buffer.mean.fill_(0.0)
-                        buffer.std.fill_(1.0)
-                        fixed_count += 1
-                        print(f"   ✅ Fixed normalize_inputs.{attr_name}")
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed normalize_inputs.{attr_name}")
 
-    # Fix all normalize_targets buffers
+    # Fix all normalize_targets buffers (force fix, don't check if infinite)
     if hasattr(policy, 'normalize_targets'):
         for attr_name in dir(policy.normalize_targets):
             if attr_name.startswith('buffer_'):
                 buffer = getattr(policy.normalize_targets, attr_name)
                 if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
-                    if torch.isinf(buffer.mean).any() or torch.isinf(buffer.std).any():
-                        buffer.mean.fill_(0.0)
-                        buffer.std.fill_(1.0)
-                        fixed_count += 1
-                        print(f"   ✅ Fixed normalize_targets.{attr_name}")
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed normalize_targets.{attr_name}")
 
-    # Fix all unnormalize_outputs buffers
+    # Fix all unnormalize_outputs buffers (force fix, don't check if infinite)
     if hasattr(policy, 'unnormalize_outputs'):
         for attr_name in dir(policy.unnormalize_outputs):
             if attr_name.startswith('buffer_'):
                 buffer = getattr(policy.unnormalize_outputs, attr_name)
                 if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
-                    if torch.isinf(buffer.mean).any() or torch.isinf(buffer.std).any():
-                        buffer.mean.fill_(0.0)
-                        buffer.std.fill_(1.0)
-                        fixed_count += 1
-                        print(f"   ✅ Fixed unnormalize_outputs.{attr_name}")
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed unnormalize_outputs.{attr_name}")
 
     print(f"   ✅ Fixed {fixed_count} normalization buffers")
 
