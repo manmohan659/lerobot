@@ -150,6 +150,28 @@ def test_smolvla_pi5():
     # Fix normalization
     fix_normalization_stats(policy)
 
+    # WARM UP MODEL - Run a few dummy inferences to pre-compile everything
+    print("🔥 Warming up model (pre-compiling)...")
+    dummy_image = torch.randn(1, 3, 224, 224).to(device)
+    dummy_state = torch.zeros(1, 6).to(device)
+    dummy_obs = {
+        "observation.image": dummy_image,
+        "observation.state": dummy_state,
+        "task": "warmup"
+    }
+
+    # Run 3 warmup inferences to trigger all lazy compilation
+    for i in range(3):
+        start = time.time()
+        with torch.no_grad():
+            _ = policy.select_action(dummy_obs)
+        warmup_time = time.time() - start
+        print(f"   Warmup {i+1}: {warmup_time*1000:.1f}ms")
+
+    # Clean up warmup tensors
+    del dummy_image, dummy_state, dummy_obs
+    print("✅ Model warmed up and compiled")
+
     # Initialize camera
     cap = init_camera()
     if cap is None:
