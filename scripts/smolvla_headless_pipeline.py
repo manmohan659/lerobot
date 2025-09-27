@@ -19,22 +19,37 @@ def fix_normalization_stats(policy):
     """Fix infinite normalization stats with reasonable values"""
     print("🔧 Fixing normalization stats...")
 
-    # Fix input normalization (state)
-    if hasattr(policy, 'normalize_inputs') and hasattr(policy.normalize_inputs, 'buffer_observation_state'):
-        policy.normalize_inputs.buffer_observation_state.mean.fill_(0.0)
-        policy.normalize_inputs.buffer_observation_state.std.fill_(1.0)
+    # Fix all normalize_inputs buffers
+    if hasattr(policy, 'normalize_inputs'):
+        for attr_name in dir(policy.normalize_inputs):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.normalize_inputs, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    print(f"   ✅ Fixed {attr_name}")
 
-    # Fix output normalization (actions)
-    if hasattr(policy, 'normalize_targets') and hasattr(policy.normalize_targets, 'buffer_action'):
-        policy.normalize_targets.buffer_action.mean.fill_(0.0)
-        policy.normalize_targets.buffer_action.std.fill_(1.0)
+    # Fix all normalize_targets buffers
+    if hasattr(policy, 'normalize_targets'):
+        for attr_name in dir(policy.normalize_targets):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.normalize_targets, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    print(f"   ✅ Fixed {attr_name}")
 
-    # Fix unnormalization (output actions)
-    if hasattr(policy, 'unnormalize_outputs') and hasattr(policy.unnormalize_outputs, 'buffer_action'):
-        policy.unnormalize_outputs.buffer_action.mean.fill_(0.0)
-        policy.unnormalize_outputs.buffer_action.std.fill_(1.0)
+    # Fix all unnormalize_outputs buffers
+    if hasattr(policy, 'unnormalize_outputs'):
+        for attr_name in dir(policy.unnormalize_outputs):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.unnormalize_outputs, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    print(f"   ✅ Fixed {attr_name}")
 
-    print("   ✅ Normalization fixed")
+    print("   ✅ All normalization buffers fixed")
 
 def kbhit():
     """Check if keyboard input is available (non-blocking)"""
@@ -59,10 +74,44 @@ def test_smolvla_headless():
     # Fix normalization
     fix_normalization_stats(policy)
 
-    # Open camera
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("❌ Camera failed")
+    # Open camera - try multiple approaches for Pi 5
+    cap = None
+    camera_methods = [
+        (0, "USB Camera 0"),
+        (1, "USB Camera 1"),
+        ("/dev/video0", "Video Device 0"),
+        ("/dev/video1", "Video Device 1"),
+    ]
+
+    for camera_id, desc in camera_methods:
+        print(f"📷 Trying {desc}...")
+        try:
+            cap = cv2.VideoCapture(camera_id)
+            if cap.isOpened():
+                # Test if we can actually read a frame
+                ret, frame = cap.read()
+                if ret:
+                    print(f"✅ {desc} working!")
+                    break
+                else:
+                    print(f"⚠️  {desc} opens but no frames")
+                    cap.release()
+                    cap = None
+            else:
+                print(f"❌ {desc} failed to open")
+                if cap:
+                    cap.release()
+                cap = None
+        except Exception as e:
+            print(f"❌ {desc} error: {e}")
+            if cap:
+                cap.release()
+            cap = None
+
+    if cap is None:
+        print("❌ No working camera found")
+        print("💡 Try: sudo apt install python3-picamera2")
+        print("💡 Or: Enable camera with sudo raspi-config")
         return
 
     print("📷 Camera ready!")
