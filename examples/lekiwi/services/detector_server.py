@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import json
 import io
 import os
 import time
@@ -75,7 +76,17 @@ def detect(req: DetectRequest, request: Request) -> Any:
         raise HTTPException(status_code=400, detail=f"Invalid image: {e}")
 
     # Run YOLO inference
-    results = MODEL.predict(img, imgsz=None, verbose=False)
+    imgsz_env = os.environ.get("YOLO_IMGSZ", "640")
+    try:
+        if "," in imgsz_env or "x" in imgsz_env.lower():
+            parts = imgsz_env.lower().replace("x", ",").split(",")
+            imgsz = [int(parts[0]), int(parts[1])] if len(parts) >= 2 else int(parts[0])
+        else:
+            imgsz = int(imgsz_env)
+    except Exception:
+        imgsz = 640
+
+    results = MODEL.predict(img, imgsz=imgsz, verbose=False)
     detections: List[Detection] = []
 
     # Collect detections from first result
