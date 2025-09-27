@@ -66,7 +66,8 @@ def main():
         # Business logic
         start = time.perf_counter()
         duration = 0
-        while duration < host.connection_time_s:
+        # Run indefinitely if connection_time_s is None, otherwise run until duration is reached
+        while host.connection_time_s is None or duration < host.connection_time_s:
             loop_start_time = time.time()
             try:
                 msg = host.zmq_cmd_socket.recv_string(zmq.NOBLOCK)

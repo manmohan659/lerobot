@@ -1,3 +1,21 @@
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+env/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Local installers
+Miniconda3-latest-*.sh
+
+# Local runbook images
+docs/source/image/runbook_autodrive_mvp/
+
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
