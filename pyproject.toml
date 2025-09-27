@@ -83,6 +83,11 @@ dependencies = [
     "imageio[ffmpeg]>=2.34.0,<3.0.0",
     "termcolor>=2.4.0,<4.0.0",
     "matplotlib>=3.10.6",
+    "opencv-python>=4.11.0.86",
+    "transformers>=4.51.3",
+    "num2words>=0.5.14",
+    "accelerate>=1.10.1",
+    "numpy>=2.2.6",
 ]
 
 # Optional dependencies
