@@ -8,6 +8,7 @@ import cv2
 
 from lerobot.robots.lekiwi.lekiwi_client import LeKiwiClient, LeKiwiClientConfig
 from lerobot.utils.visualization_utils import _init_rerun, log_rerun_data
+from lerobot.utils.utils import log_say
 
 from examples.lekiwi.agent.detector_client import DetectorClient
 from examples.lekiwi.agent.llm import IntentParser
@@ -47,11 +48,19 @@ def main() -> None:
 
     _init_rerun(session_name="lekiwi_autodrive")
 
-    print("[agent] Ready. Enter prompt when shown.")
+    print("[agent] Ready. Say your command after the beep or type it.")
+    try:
+        log_say("Ready for command", play_sounds=True)
+    except Exception:
+        pass
     text = stt_to_text()
     intent = intent_parser.parse_intent(text)
-    target_label = intent.object if intent.object else "tissue"
+    target_label = intent.object if (intent.object and intent.object.lower() != "object") else "tissue"
     print(f"[agent] Intent parsed: task={intent.task}, object={intent.object}")
+    try:
+        log_say(f"I will {intent.task} {target_label}", play_sounds=True)
+    except Exception:
+        pass
     log_event(logger, "intent", text=text, task=intent.task, object=intent.object)
 
     # Simple heading placeholder
