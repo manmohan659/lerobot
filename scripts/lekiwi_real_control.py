@@ -125,7 +125,7 @@ def main():
     print("=" * 60)
 
     # Configuration - Pi 5 IP
-    ROBOT_IP = "192.168.1.XXX"  # ⚠️ UPDATE THIS TO YOUR PI 5 IP!
+    ROBOT_IP = "192.168.11.95"  # ⚠️ UPDATE THIS TO YOUR PI 5 IP!
     EPISODE_TIME_SEC = 60
     FPS = 10  # Lower FPS for real robot safety
 
@@ -226,14 +226,10 @@ def main():
                 print(f"   Action: arm=[{', '.join(f'{lekiwi_action[k]:.2f}' for k in ['arm_shoulder_pan.pos', 'arm_shoulder_lift.pos', 'arm_elbow_flex.pos'])}] base=[{lekiwi_action['x.vel']:.2f}, {lekiwi_action['y.vel']:.2f}, {lekiwi_action['theta.vel']:.1f}]")
                 print("-" * 60)
 
-            # Control flow via logging
-            log_control_info(
-                robot=robot,
-                dt_s=time.time() - loop_start,
-                episode_index=0,
-                frame_index=frame_count,
-                fps=FPS
-            )
+            # Simple logging (skip log_control_info - has compatibility issues)
+            loop_time = time.time() - loop_start
+            if frame_count % 30 == 0:
+                print(f"⚡ Loop time: {loop_time*1000:.1f}ms ({1/loop_time:.1f} Hz)")
 
             # Check for quit/stop commands
             if kbhit():
