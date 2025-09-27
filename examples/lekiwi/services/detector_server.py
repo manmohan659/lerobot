@@ -6,7 +6,7 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 try:
@@ -52,13 +52,21 @@ MODEL: YOLO = _load_model()
 APP = FastAPI()
 
 
+def _log(event: str, **fields: Any) -> None:
+    payload = {"event": event, **fields}
+    try:
+        print(base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8"))
+    except Exception:
+        print(str(payload))
+
+
 @APP.get("/health")
 def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
 @APP.post("/detect", response_model=DetectResponse)
-def detect(req: DetectRequest) -> Any:
+def detect(req: DetectRequest, request: Request) -> Any:
     t0 = time.perf_counter()
     try:
         img_bytes = base64.b64decode(req.image_jpeg_base64)
@@ -97,6 +105,12 @@ def detect(req: DetectRequest) -> Any:
         detections = detections[:5]
 
     latency_ms = (time.perf_counter() - t0) * 1000.0
+    _log(
+        "detect",
+        remote=str(request.client.host if request.client else "-"),
+        num_dets=len(detections),
+        latency_ms=latency_ms,
+    )
     return DetectResponse(detections=detections, latency_ms=latency_ms)
 
 

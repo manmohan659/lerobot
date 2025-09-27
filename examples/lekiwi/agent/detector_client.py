@@ -6,11 +6,19 @@ import numpy as np
 import requests
 
 from .types import BBox, Detection
+from .logging_utils import setup_json_logger, log_event, get_session_id
 
 
 class DetectorClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
+        sid = get_session_id()
+        self.logger = setup_json_logger(
+            "detector_client",
+            log_file=os.environ.get("MAC_LOG_FILE"),
+            node="mac",
+            session_id=sid,
+        )
 
     def _encode_jpeg(self, frame_bgr: np.ndarray, quality: int = 70) -> str:
         import cv2
@@ -33,9 +41,13 @@ class DetectorClient:
             "image_jpeg_base64": self._encode_jpeg(frame_bgr, 70),
             "labels": labels,
         }
-        resp = requests.post(f"{self.base_url}/detect", data=json.dumps(payload), headers={"Content-Type": "application/json"}, timeout=5.0)
+        url = f"{self.base_url}/detect"
+        t0 = time.perf_counter()
+        resp = requests.post(url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, timeout=5.0)
         resp.raise_for_status()
         data = resp.json()
+        dt_ms = (time.perf_counter() - t0) * 1000.0
+        log_event(self.logger, "detect_call", url=url, latency_ms=dt_ms)
         dets: List[Detection] = []
         for d in data.get("detections", []):
             bb = d["bbox"]
