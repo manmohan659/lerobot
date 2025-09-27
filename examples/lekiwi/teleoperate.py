@@ -25,8 +25,9 @@ from lerobot.utils.visualization_utils import _init_rerun, log_rerun_data
 FPS = 30
 
 # Create the robot and teleoperator configurations
-robot_config = LeKiwiClientConfig(remote_ip="172.18.134.136", id="my_lekiwi")
-teleop_arm_config = SO100LeaderConfig(port="/dev/tty.usbmodem585A0077581", id="my_awesome_leader_arm")
+# Tailscale IP address for Raspberry Pi: 100.99.89.93
+robot_config = LeKiwiClientConfig(remote_ip="100.99.89.93", id="my_lekiwi")
+teleop_arm_config = SO100LeaderConfig(port="/dev/tty.usbmodem5A680119971", id="my_awesome_leader_arm")
 keyboard_config = KeyboardTeleopConfig(id="my_laptop_keyboard")
 
 # Initialize the robot and teleoperator
