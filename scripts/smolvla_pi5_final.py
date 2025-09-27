@@ -237,7 +237,11 @@ def test_smolvla_pi5():
             with torch.no_grad():
                 action = policy.select_action(observation)
             inference_time = time.time() - inference_start
+
+            # Keep only last 20 inference times to prevent memory growth
             inference_times.append(inference_time)
+            if len(inference_times) > 20:
+                inference_times = inference_times[-20:]
 
             # Calculate performance
             elapsed = time.time() - start_time
@@ -247,13 +251,16 @@ def test_smolvla_pi5():
             # Extract action values
             action_values = action.flatten().cpu().numpy()
 
-            # Terminal output every 5 frames
-            if frame_count % 5 == 0:
+            # Clean up tensors to prevent memory buildup
+            del image_tensor, state_tensor
+
+            # Terminal output every 10 frames (reduced frequency)
+            if frame_count % 10 == 0:
                 print(f"\r📊 Frame {frame_count:4d} | FPS: {current_fps:5.1f} | Inference: {avg_inference:6.1f}ms", end="")
                 sys.stdout.flush()
 
-            # Detailed info every 20 frames
-            if frame_count % 20 == 0:
+            # Detailed info every 30 frames (reduced frequency)
+            if frame_count % 30 == 0:
                 print(f"\n🔄 LIVE UPDATE:")
                 print(f"   📝 Task: '{instruction}'")
                 print(f"   🤖 Robot State: [{', '.join(f'{x:6.3f}' for x in current_robot_state)}]")
