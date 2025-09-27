@@ -16,11 +16,44 @@ def test_pure_inference():
     policy = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base")
     policy = policy.to('cpu')
 
-    # Fix normalization
+    # Fix normalization comprehensively
+    print("🔧 Fixing all normalization buffers...")
+
+    fixed_count = 0
+    # Fix all normalize_inputs buffers
     if hasattr(policy, 'normalize_inputs'):
-        if hasattr(policy.normalize_inputs, 'buffer_observation_state'):
-            policy.normalize_inputs.buffer_observation_state.mean.fill_(0.0)
-            policy.normalize_inputs.buffer_observation_state.std.fill_(1.0)
+        for attr_name in dir(policy.normalize_inputs):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.normalize_inputs, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed normalize_inputs.{attr_name}")
+
+    # Fix all normalize_targets buffers
+    if hasattr(policy, 'normalize_targets'):
+        for attr_name in dir(policy.normalize_targets):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.normalize_targets, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed normalize_targets.{attr_name}")
+
+    # Fix all unnormalize_outputs buffers
+    if hasattr(policy, 'unnormalize_outputs'):
+        for attr_name in dir(policy.unnormalize_outputs):
+            if attr_name.startswith('buffer_'):
+                buffer = getattr(policy.unnormalize_outputs, attr_name)
+                if hasattr(buffer, 'mean') and hasattr(buffer, 'std'):
+                    buffer.mean.fill_(0.0)
+                    buffer.std.fill_(1.0)
+                    fixed_count += 1
+                    print(f"   ✅ Fixed unnormalize_outputs.{attr_name}")
+
+    print(f"   ✅ Fixed {fixed_count} normalization buffers total")
 
     print("🚀 Running 50 pure inference tests...")
 
