@@ -9,14 +9,14 @@ import cv2
 from lerobot.robots.lekiwi.lekiwi_client import LeKiwiClient, LeKiwiClientConfig
 from lerobot.utils.visualization_utils import _init_rerun, log_rerun_data
 
-from .agent.detector_client import DetectorClient
-from .agent.llm import IntentParser
-from .agent.navigator import Navigator
-from .agent.picker import Picker
-from .agent.returner import Returner
-from .agent.types import Detection
-from .agent.voice import stt_to_text
-from .agent.logging_utils import setup_json_logger, log_event, get_session_id
+from examples.lekiwi.agent.detector_client import DetectorClient
+from examples.lekiwi.agent.llm import IntentParser
+from examples.lekiwi.agent.navigator import Navigator
+from examples.lekiwi.agent.picker import Picker
+from examples.lekiwi.agent.returner import Returner
+from examples.lekiwi.agent.types import Detection
+from examples.lekiwi.agent.voice import stt_to_text
+from examples.lekiwi.agent.logging_utils import setup_json_logger, log_event, get_session_id
 
 
 def main() -> None:
@@ -33,7 +33,10 @@ def main() -> None:
         session_id=sid,
     )
 
-    robot = LeKiwiClient(LeKiwiClientConfig(remote_ip=remote_ip, id=robot_id))
+    client_timeout = int(os.environ.get("LEKIWI_CONNECT_TIMEOUT_S", "30"))
+    robot = LeKiwiClient(
+        LeKiwiClientConfig(remote_ip=remote_ip, id=robot_id, connect_timeout_s=client_timeout)
+    )
     robot.connect()
 
     detector = DetectorClient(detector_url)
@@ -44,9 +47,11 @@ def main() -> None:
 
     _init_rerun(session_name="lekiwi_autodrive")
 
+    print("[agent] Ready. Enter prompt when shown.")
     text = stt_to_text()
     intent = intent_parser.parse_intent(text)
     target_label = intent.object if intent.object else "tissue"
+    print(f"[agent] Intent parsed: task={intent.task}, object={intent.object}")
     log_event(logger, "intent", text=text, task=intent.task, object=intent.object)
 
     # Simple heading placeholder
@@ -70,6 +75,7 @@ def main() -> None:
 
             if state in ("SEARCH", "APPROACH"):
                 action = navigator.compute_action(detections)
+                print(f"[agent] action: {action}")
                 robot.send_action(action)
                 log_event(logger, "action", **action)
                 # Transition
