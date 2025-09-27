@@ -124,8 +124,8 @@ def main():
     print("🚀 LeKiwi Real Control - Vision to Action")
     print("=" * 60)
 
-    # Configuration - UPDATE THIS IP!
-    ROBOT_IP = "192.168.1.100"  # ⚠️ UPDATE THIS TO YOUR LEKIWI IP!
+    # Configuration - Pi 5 IP
+    ROBOT_IP = "192.168.1.XXX"  # ⚠️ UPDATE THIS TO YOUR PI 5 IP!
     EPISODE_TIME_SEC = 60
     FPS = 10  # Lower FPS for real robot safety
 
