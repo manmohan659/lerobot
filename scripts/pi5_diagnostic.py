@@ -46,22 +46,54 @@ def test_camera():
 
     try:
         import cv2
+        import platform
+        from pathlib import Path
         print("✅ OpenCV imported successfully")
 
-        # Test camera access
-        print("📷 Testing camera access...")
-        cap = cv2.VideoCapture(0)
+        # Use the same robust camera detection as main branch
+        MAX_OPENCV_INDEX = 60
 
-        if not cap.isOpened():
-            print("❌ Camera 0 failed, trying camera 1...")
-            cap = cv2.VideoCapture(1)
+        print("📷 Testing camera access with extended search...")
 
-        if cap.isOpened():
+        camera_attempts = []
+
+        if platform.system() == "Linux":
+            # Scan /dev/video* devices first
+            possible_paths = sorted(Path("/dev").glob("video*"), key=lambda p: p.name)
+            for path in possible_paths:
+                camera_attempts.append((str(path), f"Video device {path.name}"))
+
+        # Then try indices 0 to MAX_OPENCV_INDEX
+        for i in range(min(MAX_OPENCV_INDEX, 20)):  # Limit to 20 for diagnostic
+            camera_attempts.append((i, f"Camera index {i}"))
+
+        print(f"   Scanning {len(camera_attempts)} possible camera locations...")
+
+        working_camera = None
+        for camera_id, desc in camera_attempts:
+            try:
+                cap = cv2.VideoCapture(camera_id)
+                if cap.isOpened():
+                    # Test frame capture
+                    ret, frame = cap.read()
+                    if ret and frame is not None:
+                        print(f"   ✅ {desc} working! Frame: {frame.shape}")
+                        working_camera = cap
+                        break
+                    else:
+                        cap.release()
+                else:
+                    if cap:
+                        cap.release()
+            except Exception:
+                continue
+
+        if working_camera:
             print("✅ Camera opened successfully")
 
             # Test frame capture
             print("📸 Testing frame capture...")
-            ret, frame = cap.read()
+            ret, frame = working_camera.read()
 
             if ret:
                 print(f"✅ Frame captured: {frame.shape}, dtype: {frame.dtype}")
@@ -72,7 +104,7 @@ def test_camera():
                 start_time = time.time()
 
                 for i in range(10):
-                    ret, frame = cap.read()
+                    ret, frame = working_camera.read()
                     if ret:
                         frame_count += 1
                     time.sleep(0.1)
@@ -84,9 +116,9 @@ def test_camera():
             else:
                 print("❌ Failed to capture frame")
 
-            cap.release()
+            working_camera.release()
         else:
-            print("❌ Cannot open any camera")
+            print("❌ Cannot open any camera after extended search")
 
         # Check camera devices
         stdout, stderr = run_command("ls /dev/video*")
@@ -255,10 +287,41 @@ def test_integration():
                 policy.normalize_inputs.buffer_observation_state.mean.fill_(0.0)
                 policy.normalize_inputs.buffer_observation_state.std.fill_(1.0)
 
-        print("📷 Opening camera...")
-        cap = cv2.VideoCapture(0)
+        print("📷 Opening camera with robust detection...")
 
-        if not cap.isOpened():
+        # Use same detection logic
+        import platform
+        from pathlib import Path
+
+        camera_attempts = []
+
+        if platform.system() == "Linux":
+            possible_paths = sorted(Path("/dev").glob("video*"), key=lambda p: p.name)
+            for path in possible_paths[:3]:  # Just first 3 for integration test
+                camera_attempts.append((str(path), f"Video device {path.name}"))
+
+        for i in range(3):  # Just first 3 indices for integration test
+            camera_attempts.append((i, f"Camera index {i}"))
+
+        cap = None
+        for camera_id, desc in camera_attempts:
+            try:
+                test_cap = cv2.VideoCapture(camera_id)
+                if test_cap.isOpened():
+                    ret, frame = test_cap.read()
+                    if ret and frame is not None:
+                        cap = test_cap
+                        print(f"   Using {desc}")
+                        break
+                    else:
+                        test_cap.release()
+                else:
+                    if test_cap:
+                        test_cap.release()
+            except Exception:
+                continue
+
+        if not cap:
             print("❌ Camera not available for integration test")
             return
 

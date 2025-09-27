@@ -67,20 +67,34 @@ def fix_normalization_stats(policy):
     print(f"   ✅ Fixed {fixed_count} normalization buffers")
 
 def init_camera():
-    """Try multiple camera access methods for Pi 5"""
-    print("📷 Initializing camera...")
+    """Try multiple camera access methods for Pi 5 - using main branch logic"""
+    print("📷 Initializing camera with extended search...")
 
-    # Try different camera indices and methods
-    camera_attempts = [
-        (0, "Default camera 0"),
-        (1, "Camera 1"),
-        (2, "Camera 2"),
-        ("/dev/video0", "Video device 0"),
-        ("/dev/video1", "Video device 1"),
-    ]
+    # Use the same MAX_OPENCV_INDEX as main branch for robust detection
+    MAX_OPENCV_INDEX = 60
+
+    # First try /dev/video* paths (Linux-specific)
+    import platform
+    from pathlib import Path
+
+    camera_attempts = []
+
+    if platform.system() == "Linux":
+        # Scan /dev/video* devices first
+        possible_paths = sorted(Path("/dev").glob("video*"), key=lambda p: p.name)
+        for path in possible_paths:
+            camera_attempts.append((str(path), f"Video device {path.name}"))
+
+    # Then try indices 0 to MAX_OPENCV_INDEX
+    for i in range(MAX_OPENCV_INDEX):
+        camera_attempts.append((i, f"Camera index {i}"))
+
+    print(f"   Scanning {len(camera_attempts)} possible camera locations...")
 
     for camera_id, desc in camera_attempts:
-        print(f"   Trying {desc}...")
+        if len(camera_attempts) > 10 and isinstance(camera_id, int) and camera_id % 10 == 0:
+            print(f"   Checking indices {camera_id}-{camera_id+9}...")
+
         try:
             cap = cv2.VideoCapture(camera_id)
             if cap.isOpened():
@@ -97,21 +111,21 @@ def init_camera():
 
                     return cap
                 else:
-                    print(f"   ❌ {desc} no frames")
                     cap.release()
             else:
-                print(f"   ❌ {desc} failed to open")
                 if cap:
                     cap.release()
-        except Exception as e:
-            print(f"   ❌ {desc} error: {e}")
+        except Exception:
+            # Silently continue for cleaner output during bulk scanning
+            continue
 
-    print("❌ No working camera found!")
+    print("❌ No working camera found after scanning all indices!")
     print("💡 Troubleshooting:")
     print("   - Check: ls /dev/video*")
     print("   - Enable Pi Camera: sudo raspi-config > Interface > Camera")
     print("   - Install libs: sudo apt install python3-picamera2")
     print("   - Test camera: libcamera-hello --timeout 2000")
+    print("   - Reboot after enabling camera in raspi-config")
     return None
 
 def kbhit():
