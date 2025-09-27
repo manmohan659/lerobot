@@ -16,6 +16,7 @@ from .agent.picker import Picker
 from .agent.returner import Returner
 from .agent.types import Detection
 from .agent.voice import stt_to_text
+from .agent.logging_utils import setup_json_logger, log_event, get_session_id
 
 
 def main() -> None:
@@ -23,6 +24,14 @@ def main() -> None:
     remote_ip = os.environ.get("LEKIWI_PI_IP", "127.0.0.1")
     robot_id = os.environ.get("LEKIWI_ROBOT_ID", "my_lekiwi")
     detector_url = os.environ.get("DETECTOR_URL", "http://127.0.0.1:8080")
+
+    sid = get_session_id()
+    logger = setup_json_logger(
+        "autodrive",
+        log_file=os.environ.get("MAC_LOG_FILE"),
+        node="mac",
+        session_id=sid,
+    )
 
     robot = LeKiwiClient(LeKiwiClientConfig(remote_ip=remote_ip, id=robot_id))
     robot.connect()
@@ -38,8 +47,7 @@ def main() -> None:
     text = stt_to_text()
     intent = intent_parser.parse_intent(text)
     target_label = intent.object if intent.object else "tissue"
-
-    print(f"Intent: {intent}")
+    log_event(logger, "intent", text=text, task=intent.task, object=intent.object)
 
     # Simple heading placeholder
     home_heading_deg = 0.0
@@ -63,6 +71,7 @@ def main() -> None:
             if state in ("SEARCH", "APPROACH"):
                 action = navigator.compute_action(detections)
                 robot.send_action(action)
+                log_event(logger, "action", **action)
                 # Transition
                 if len(detections) > 0:
                     det = max(detections, key=lambda d: d.score)
@@ -74,11 +83,13 @@ def main() -> None:
 
             elif state == "PICK":
                 ok = picker.run_pick(robot)
+                log_event(logger, "pick_done", success=ok)
                 state = "RETURN" if ok else "SEARCH"
 
             elif state == "RETURN":
                 action = returner.step(current_heading_deg=0.0)
                 robot.send_action(action)
+                log_event(logger, "return_action", **action)
                 # Stop after short return for demo
                 time.sleep(2.0)
                 robot.send_action({"x.vel": 0.0, "y.vel": 0.0, "theta.vel": 0.0})
