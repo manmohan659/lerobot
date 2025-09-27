@@ -46,20 +46,27 @@ def test_basic_inference():
     print(f"🖥️ Device: {device}")
     print(f"📊 Model parameters: {sum(p.numel() for p in policy.parameters()):,}")
 
-    # Create dummy observation matching LeKiwi format
+    # Check what features the model expects
+    print(f"🔍 Model expects these image features: {policy.config.image_features}")
+    print(f"🔍 Model expects these state features: {policy.config.state_features}")
+
+    # Create dummy observation matching model expectations
     print("\n🎯 Testing inference with dummy data...")
 
-    # ALOHA observation format (since we're using ALOHA models)
-    dummy_observation = {
-        # Camera images (ALOHA format)
-        "observation.image.cam_high": np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8),
-        "observation.image.cam_low": np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8),
-        "observation.image.cam_left_wrist": np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8),
-        "observation.image.cam_right_wrist": np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8),
+    # Create observation based on what the model actually expects
+    dummy_observation = {}
 
-        # Robot state (ALOHA format - dual arm)
-        "observation.state": np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4], dtype=np.float32),
-    }
+    # Add expected image features
+    for img_key in policy.config.image_features:
+        dummy_observation[img_key] = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+        print(f"   Added image: {img_key}")
+
+    # Add expected state features
+    for state_key in policy.config.state_features:
+        # Use appropriate state size - check the model's expected dimensions
+        state_dim = 14  # Default ALOHA dual arm
+        dummy_observation[state_key] = np.random.uniform(-1, 1, state_dim).astype(np.float32)
+        print(f"   Added state: {state_key} (dim: {state_dim})")
 
     # Test multiple inferences for timing
     times = []
